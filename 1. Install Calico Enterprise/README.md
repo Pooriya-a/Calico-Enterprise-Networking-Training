@@ -589,7 +589,7 @@ metadata:
     kubernetes.io/ingress.class: "nginx"
 spec:
   rules:
-  - host: "manager.<LABNAME>.lynx.tigera.ca"
+  - host: "manager.<LABNAME>.training.tigera.ca"
     http:
       paths:
       - path: /
@@ -606,7 +606,7 @@ EOF
 2. Check your access to the yaobank application and CE Manager UI using the following URLs. Make sure to replace `<LABNAME>` with the name of your lab instance.
 
 ```
-https://manager.<LABNAME>.lynx.tigera.ca
+https://manager.<LABNAME>.training.tigera.ca
 ```
 
 3. Calico Enterprise Manager UI by default supports token-based auth. Let's create a serviceaccount so that we can use the associated token to log into the Manager UI. 
@@ -615,15 +615,29 @@ https://manager.<LABNAME>.lynx.tigera.ca
 kubectl create sa tigercub
 ```
 
+UPDATE: After k8s 1.24 - you need to manually create the Secret; the token key in the data field will be automatically set for you
+
+```
+kubectl apply -f -<<EOF
+apiVersion: v1
+kind: Secret
+metadata:
+  name: <token-name>
+  annotations:
+    kubernetes.io/service-account.name: tigercub
+type: kubernetes.io/service-account-token
+EOF
+```
+
 4. We already created the serviceaccount, but the serviceaccount does not yet have the required permissions to log into the Manager UI. When CE is deployed, it creates a clusterrole called `tigera-network-admin`, which has full permissions to CE resources including the Manager UI. Let's bind our serviceaccount `tigercub` to the clusterrole `tigera-network-admin` using a clusterrolebinding.
 
 ```
 kubectl create clusterrolebinding tigercub-bind --clusterrole tigera-network-admin --serviceaccount default:tigercub
 ```
-5. Run the following command to retrieve the token for the serviceaccount we just created.
 
+5. Run the following command to retrieve the token for the serviceaccount we just created:
 ```
-kubectl get secret $(kubectl get serviceaccount tigercub -o jsonpath='{range .secrets[*]}{.name}{"\n"}{end}' | grep token) -o go-template='{{.data.token | base64decode}}' && echo
+kubectl get secret <token-name> -o jsonpath={.data.token} | base64 -d
 ```
 
 6. Copy the token where you can easily retrieve it later. 
@@ -632,7 +646,7 @@ kubectl get secret $(kubectl get serviceaccount tigercub -o jsonpath='{range .se
 **Note:** Do not foroget to replace `<LABNAME>` with your lab instance name.
 
 ```
-https://manager.<LABNAME>.lynx.tigera.ca
+https://manager.<LABNAME>.training.tigera.ca
 ```
 You shouls see a page similar to the following.
 
